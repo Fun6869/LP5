@@ -1,0 +1,183 @@
+%%writefile Sort.cpp
+
+#include <iostream>
+#include <omp.h>
+
+using namespace std;
+
+// ---------- Bubble Sort ----------
+
+void sequentialBubbleSort(int a[], int n) {
+
+    for (int i = 0; i < n - 1; i++) {
+
+        for (int j = 0; j < n - i - 1; j++) {
+
+            if (a[j] > a[j + 1]) {
+                swap(a[j], a[j + 1]);
+            }
+        }
+    }
+}
+
+void parallelBubbleSort(int a[], int n) {
+
+    for (int i = 0; i < n - 1; i++) {
+
+        #pragma omp parallel for
+        for (int j = 0; j < n - i - 1; j++) {
+
+            if (a[j] > a[j + 1]) {
+                swap(a[j], a[j + 1]);
+            }
+        }
+    }
+}
+
+// ---------- Merge Sort ----------
+
+void merge(int a[], int low, int mid, int high) {
+
+    int temp[1000];
+
+    int i = low;
+    int j = mid + 1;
+    int k = low;
+
+    while (i <= mid && j <= high) {
+
+        if (a[i] < a[j]) {
+            temp[k++] = a[i++];
+        }
+        else {
+            temp[k++] = a[j++];
+        }
+    }
+
+    while (i <= mid) {
+        temp[k++] = a[i++];
+    }
+
+    while (j <= high) {
+        temp[k++] = a[j++];
+    }
+
+    for (int i = low; i <= high; i++) {
+        a[i] = temp[i];
+    }
+}
+
+void sequentialMergeSort(int a[], int low, int high) {
+
+    if (low < high) {
+
+        int mid = (low + high) / 2;
+
+        sequentialMergeSort(a, low, mid);
+        sequentialMergeSort(a, mid + 1, high);
+
+        merge(a, low, mid, high);
+    }
+}
+
+void parallelMergeSort(int a[], int low, int high) {
+
+    if (low < high) {
+
+        int mid = (low + high) / 2;
+
+        #pragma omp parallel sections
+        {
+
+            #pragma omp section
+            parallelMergeSort(a, low, mid);
+
+            #pragma omp section
+            parallelMergeSort(a, mid + 1, high);
+        }
+
+        merge(a, low, mid, high);
+    }
+}
+
+// ---------- Main ----------
+
+int main() {
+
+    int n;
+
+    cout << "Enter number of elements: ";
+    cin >> n;
+
+    int a[n], b[n], c[n], d[n];
+
+    cout << "Enter elements:\n";
+
+    for (int i = 0; i < n; i++) {
+
+        cin >> a[i];
+
+        b[i] = a[i];
+        c[i] = a[i];
+        d[i] = a[i];
+    }
+
+    double start, end;
+
+    // Sequential Bubble Sort
+
+    start = omp_get_wtime();
+
+    sequentialBubbleSort(a, n);
+
+    end = omp_get_wtime();
+
+    cout << "\nSequential Bubble Sort Time = "
+         << end - start << " seconds";
+
+    // Parallel Bubble Sort
+
+    start = omp_get_wtime();
+
+    parallelBubbleSort(b, n);
+
+    end = omp_get_wtime();
+
+    cout << "\nParallel Bubble Sort Time = "
+         << end - start << " seconds";
+
+    // Sequential Merge Sort
+
+    start = omp_get_wtime();
+
+    sequentialMergeSort(c, 0, n - 1);
+
+    end = omp_get_wtime();
+
+    cout << "\nSequential Merge Sort Time = "
+         << end - start << " seconds";
+
+    // Parallel Merge Sort
+
+    start = omp_get_wtime();
+
+    parallelMergeSort(d, 0, n - 1);
+
+    end = omp_get_wtime();
+
+    cout << "\nParallel Merge Sort Time = "
+         << end - start << " seconds";
+
+    cout << "\n\nSorted Array:\n";
+
+    for (int i = 0; i < n; i++) {
+        cout << d[i] << " ";
+    }
+
+    return 0;
+}
+
+
+!g++ -fopenmp Sort.cpp -o output
+
+!./output
